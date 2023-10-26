@@ -53,13 +53,19 @@ class SplitedGraphModel(nn.Module):
     def forward(self, x, adj: List[torch.Tensor], prev_result: Optional[torch.Tensor]=None):
         # assert len(self.layers) == 10
         # assert len(self.exits) == 10
-        assert len(adj) == 10
+        # assert len(adj) == 10
         outputs = []
         exit_num = -1
+        # FIXME: to(device=torch.device('cuda')) 不应该出现在这里吧？
         result = torch.zeros((x.size(0), 62, 64)).to(device=torch.device('cuda')) if prev_result is None else prev_result # 先写死
+        print('prev_result.shape:', result.shape)
 
         for i, (layer, exit) in enumerate(zip(self.layers, self.exits)):
-            result += layer(x, adj[i])
+            temp = layer(x, adj[i])
+            print('temp.shape:', temp.shape)
+            result += temp
+            # result += layer(x, adj[i])
+            print('x: {}, result: {}'.format(x.dtype, result.dtype))
             out = exit(x, F.relu(result))
             pred = out.argmax(dim=1)
 

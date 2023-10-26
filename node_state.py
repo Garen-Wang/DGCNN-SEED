@@ -11,6 +11,7 @@ class NodeState:
         self._model = ""
         self._model2 = ""
         self._weights = ""
+        self._idx = ""
         self._lock = threading.Lock()
     @property
     def chunk_size(self):
@@ -57,6 +58,15 @@ class NodeState:
         print("Weights set")
         with self._lock:
             self._weights = w
+    @property
+    def idx(self):
+        with self._lock:
+            return self._idx
+    @idx.setter
+    def idx(self, idx):
+        with self._lock:
+            self._idx = idx
+
     
 def socket_send(bytes, sock: socket.socket, chunk_size: int):
     size = len(bytes)
