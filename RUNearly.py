@@ -51,21 +51,19 @@ class SplitedGraphModel(nn.Module):
     
     # 返回 中间结果，是否早退
     def forward(self, x, adj: List[torch.Tensor], prev_result: Optional[torch.Tensor]=None):
-        # assert len(self.layers) == 10
-        # assert len(self.exits) == 10
-        # assert len(adj) == 10
         outputs = []
         exit_num = -1
+        num_layers = len(self.layers)
         # FIXME: to(device=torch.device('cuda')) 不应该出现在这里吧？
         result = torch.zeros((x.size(0), 62, 64)).to(device=torch.device('cuda')) if prev_result is None else prev_result # 先写死
-        print('prev_result.shape:', result.shape)
+        # print('prev_result.shape:', result.shape)
 
         for i, (layer, exit) in enumerate(zip(self.layers, self.exits)):
-            temp = layer(x, adj[i])
-            print('temp.shape:', temp.shape)
-            result += temp
-            # result += layer(x, adj[i])
-            print('x: {}, result: {}'.format(x.dtype, result.dtype))
+            # temp = layer(x, adj[i])
+            # print('temp.shape:', temp.shape)
+            # result += temp
+            # print('x: {}, result: {}'.format(x.dtype, result.dtype))
+            result += layer(x, adj[i])
             out = exit(x, F.relu(result))
             pred = out.argmax(dim=1)
 
@@ -80,7 +78,7 @@ class SplitedGraphModel(nn.Module):
                 elif same and len(outputs) == 3:
                     # 相同的层有3层，或者最后一个退出点
                     exit_num = i + 1
-                elif self.is_final and i == 10 - 1:
+                elif self.is_final and i == num_layers - 1:
                     # 整个推理的最后一个出口了
                     exit_num = i + 1
                     outputs = [pred]
@@ -90,13 +88,13 @@ class SplitedGraphModel(nn.Module):
         return outputs[-1] if exit_num != -1 else result, exit_num
 
 
-# 分成4份，每份10个GCN
+# 分成2份，每份20个GCN
 def split_graph_model(graph_model: nn.Module, fc_models: List[nn.Module]) -> List[nn.Module]:
     assert len(GraphModel.layer1.gc1) == 40
     sub_models = []
-    for i in range(0, 40, 10):
+    for i in range(0, 40, 20):
         sub_model = SplitedGraphModel()
-        for j in range(i, i + 10):
+        for j in range(i, i + 20):
             sub_model.layers.append(graph_model.layer1.gc1[j])
             sub_model.exits.append(fc_models[j])
         sub_models.append(sub_model)
@@ -191,7 +189,7 @@ def local_test_inference(main_model, sub_models, test_iter):
         pred = None
         exit_num = -1
         for i, sub_model in enumerate(sub_models):
-            result, exit_num = sub_model(x, adj[i*10:(i+1)*10], prev_result=result)
+            result, exit_num = sub_model(x, adj[i*20:(i+1)*20], prev_result=result)
             if exit_num != -1:
                 pred = result
                 exit_num = i*10 + exit_num
