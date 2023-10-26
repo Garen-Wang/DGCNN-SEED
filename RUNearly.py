@@ -216,10 +216,9 @@ if __name__ == '__main__':
     for i, sub_model in enumerate(sub_models):
         torch.jit.script(sub_model).save(os.path.join(CKPT_PATH, f'sub_model_{i}.pth'))
     print('saved')
-    
     loaded_sub_models = []
     for i in range(len(sub_models)):
         loaded_sub_models.append(torch.jit.load(os.path.join(CKPT_PATH, f'sub_model_{i}.pth')).to(device))
-    
     local_test_inference(GraphModel, loaded_sub_models, test_iter)
+
     # local_inference(test_iter, 3)
